@@ -1,3 +1,13 @@
+// Mine Database Creator - MJS 9.2017
+// This file creates a simple SQL mine database with inter-related tables, using Derby. 
+// First, if the tables already exist, they are dropped (note that tables with 
+// foreign keys must be dropped first).  Then new tables are created. 
+// Primary keys, foreign keys, non-nulls, defaults, and constraints are used.
+// When inserting values, a sample insert using a default is included. 
+// Finally the count of rows for each table is shown to let the user know 
+// that the routine has succeeded.
+// Since the original purpose of this class was to show how to connect to a DB in JDBC, 
+// the database is relatively simple.
 package mineDatabase;
 
 import java.sql.*;
@@ -12,7 +22,7 @@ public class CreateMineDatabase {
 		try (Connection conn = DriverManager.getConnection(url);
 			 Statement stmt = conn.createStatement()) {
 			System.out.println("Connection is " + conn);
-			String[] tableNames = new String[] {"COALCO", "COALTOWN"};
+			String[] tableNames = new String[] {"COALTOWN", "COALCO"};
 			for (String str: tableNames) {
 				try (ResultSet rs = conn.getMetaData().getTables(null, null, str, null)) {
 					if (rs.next()) {
@@ -23,18 +33,19 @@ public class CreateMineDatabase {
 				}  // end try resultSet	
 			} // end for all tables
 			stmt.executeUpdate("CREATE TABLE COALCO ("
-			+ "id INTEGER PRIMARY KEY, "
+			+ "id INTEGER NOT NULL CONSTRAINT company_pk PRIMARY KEY, "
 			+ "name VARCHAR(255), "
-			+ "date_founded DATE)");
+			+ "date_founded DATE DEFAULT '1850-01-01' "
+			+ ")");
 			System.out.println("Created Company Table");
 			stmt.executeUpdate("CREATE TABLE COALTOWN ("
-			+ "id INTEGER PRIMARY KEY, "
-			+ "name VARCHAR(255), "
-			+ "owner_id integer, "
-			+ "housing_units integer,"
+			+ "id INTEGER NOT NULL CONSTRAINT town_pk PRIMARY KEY, "
+			+ "name VARCHAR(255) NOT NULL, "
+			+ "owner_id integer REFERENCES coalco(id), "
+			+ "housing_units integer CONSTRAINT houses_positive CHECK (housing_units > 0),"
 			+ "date_built DATE)");
 			System.out.println("Created Town Table");
-			stmt.executeUpdate("INSERT INTO COALCO VALUES (1, 'Cambria Steel', '1880-01-01')");
+			stmt.executeUpdate("INSERT INTO COALCO(id, name) VALUES (1, 'Cambria Steel')");
 			stmt.executeUpdate("INSERT INTO COALCO VALUES (2, 'Edwards Coal', '1921-06-01')");
 			stmt.executeUpdate("INSERT INTO COALCO VALUES (3, 'Jamison Coal and Coke', '1890-09-01')");
 			stmt.executeUpdate("INSERT INTO COALCO VALUES (4, 'Rochester and Pittsburgh', '1885-01-01')");
@@ -52,6 +63,7 @@ public class CreateMineDatabase {
 			stmt.executeUpdate("INSERT INTO COALTOWN VALUES (10, 'Hart Town',    4,  40, '1907-01-01')");
 			stmt.executeUpdate("INSERT INTO COALTOWN VALUES (11, 'Nesbitt Run',  4,  24, '1908-01-01')");
 			System.out.println("Created Coal Town Entries");
+			// Count values in each table and display so user knows that table creation has worked.
 			ResultSet rs = stmt.executeQuery("SELECT COUNT(*) AS rowCount FROM COALCO");
 			rs.next();
 			int coalCoCount = rs.getInt("rowCount");
@@ -63,9 +75,9 @@ public class CreateMineDatabase {
 			System.out.println("There are " + coalCoCount + " coal companies and " + coalTownCount + " coal towns.");
 			
 		} catch (Exception e) {
-					System.out.println("Exception caught inside try Conn");
+					System.out.println("Exception caught inside CreateMineDatabase try getConnection . . . ");
 					e.printStackTrace();
-			}
-	}
+		} // end try-catch
+}  // end class CreateMineDatabase
 
 }
